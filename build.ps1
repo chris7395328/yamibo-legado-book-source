@@ -74,6 +74,25 @@ if (message != null) {
 intro;
 '@
 
+$bookAuthorJs = @'
+@js:
+var doc = org.jsoup.Jsoup.parse(String(result || ""), String(baseUrl || "https://bbs.yamibo.com/"));
+var message = doc.select("#postlist [id^=postmessage_]").first();
+var author = "";
+if (message != null) {
+    // 首帖常在正文第一行写“作者：xxx”；保留换行后只匹配这一行，避免把正文内容误当作者。
+    var html = String(message.html() || "").replace(/<br\s*\/?\s*>/gi, "\n").replace(/<\/(?:p|div|li|tr|h[1-6])>/gi, "\n");
+    var match = html.match(/(?:^|\n)\s*作者\s*[:：]\s*([^\r\n<]+)/i);
+    if (match) author = String(match[1]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+if (!author && message != null) {
+    var user = message.closest("table[id^=pid]");
+    var link = user == null ? null : user.select(".authi a.xw1,.authi a").first();
+    if (link != null) author = String(link.text()).trim();
+}
+author;
+'@
+
 $bookCoverJs = @'
 @js:
 var pageUrl = String(baseUrl || "https://bbs.yamibo.com/");
@@ -192,7 +211,7 @@ $source = [ordered]@{
     ruleBookInfo = [ordered]@{
         init = ''
         name = '#thread_subject@text'
-        author = '#postlist table[id^=pid] .authi a.xw1@text'
+        author = $bookAuthorJs.Trim()
         intro = $bookIntroJs.Trim()
         kind = ''
         lastChapter = ''
