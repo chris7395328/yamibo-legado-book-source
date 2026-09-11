@@ -1,15 +1,5 @@
 (function () {
     var eventName = String(event || "");
-    if (eventName === "clickClearCache") {
-        var cacheTid = (String(book.bookUrl || "").match(/thread-(\d+)/i) || String(book.bookUrl || "").match(/[?&]tid=(\d+)/i) || [])[1];
-        if (cacheTid) {
-            var originalTocUrl = String(java.get("yamibo_toc_original_" + cacheTid) || "");
-            var cacheAuthor = (originalTocUrl.match(/[?&]authorid=(\d+)/i) || [])[1];
-            if (cacheAuthor) java.put("yamibo_toc_v3_" + cacheTid + "_" + cacheAuthor, "");
-        }
-        java.toast("已清除本帖目录快照；下次刷新目录会完整重建。");
-        return true;
-    }
     if (eventName === "longClickCustomButton") {
         java.showBrowser(String(book.bookUrl));
         return true;
