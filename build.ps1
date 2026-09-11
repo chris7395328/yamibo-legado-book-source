@@ -112,136 +112,6 @@ var message = node.select("[id^=postmessage_]").first();
 message == null ? "" : String(baseUrl).replace(/#.*$/, "") + "#" + String(message.id());
 '@
 
-$cachedChapterNameJs = @'
-@js:
-var urlForKey = String(book.bookUrl || "");
-var tidForKey = (urlForKey.match(/thread-(\d+)/i) || urlForKey.match(/[?&]tid=(\d+)/i) || [])[1];
-if (tidForKey) {
-    // preUpdateJs 临时把 tocUrl 指到 tocHtml；在解析首章时立即还原真实楼主目录 URL，
-    // 防止这个临时地址被写进书架，影响之后的自动检查。
-    var savedTocUrl = String(java.get("yamibo_toc_original_" + tidForKey) || "");
-    if (savedTocUrl) book.tocUrl = savedTocUrl;
-}
-String(result.text() || "").trim();
-'@
-
-$cachedChapterUrlJs = @'
-@js:
-var urlForKey = String(book.bookUrl || "");
-var tidForKey = (urlForKey.match(/thread-(\d+)/i) || urlForKey.match(/[?&]tid=(\d+)/i) || [])[1];
-if (tidForKey) {
-    var savedTocUrl = String(java.get("yamibo_toc_original_" + tidForKey) || "");
-    if (savedTocUrl) book.tocUrl = savedTocUrl;
-}
-String(result.absUrl("href") || result.attr("href") || "");
-'@
-
-# 目录更新不能每次都并发/快速扫完一个数十页的“只看楼主”主题。
-# 首次建立完整快照；其后只校验第 1 页及末两页，缓存的旧页直接复用。
-# 每 7 天全量校准一次，处理删帖、编辑或中段调整带来的罕见错位。
-$tocPreUpdateJs = @'
-@js:
-var base = "https://bbs.yamibo.com/";
-var originalTocUrl = String(book.tocUrl || book.bookUrl || "");
-var tidMatch = originalTocUrl.match(/thread-(\d+)/i) || originalTocUrl.match(/[?&]tid=(\d+)/i);
-if (!tidMatch) throw "无法确定帖子 ID，不能建立增量目录。";
-var tid = tidMatch[1];
-var authorMatch = originalTocUrl.match(/[?&]authorid=(\d+)/i);
-var bootstrapDoc = null;
-if (!authorMatch) {
-    var bootstrapHtml = java.ajax(originalTocUrl);
-    bootstrapDoc = org.jsoup.Jsoup.parse(String(bootstrapHtml || ""), originalTocUrl);
-    var ownerLink = bootstrapDoc.select("#postlist a[href*=authorid]").first();
-    if (ownerLink != null) authorMatch = String(ownerLink.absUrl("href") || ownerLink.attr("href") || "").match(/[?&]authorid=(\d+)/i);
-}
-if (!authorMatch) throw "无法确定帖子楼主，不能建立阅读目录。";
-var authorId = authorMatch[1];
-var cacheKey = "yamibo_toc_v3_" + tid + "_" + authorId;
-java.put("yamibo_toc_original_" + tid, originalTocUrl);
-var cache = null;
-try { cache = JSON.parse(String(java.get(cacheKey) || "")); } catch (e) { cache = null; }
-if (cache == null || cache.pages == null) cache = { pages: {}, maxPage: 0, fullSyncAt: 0 };
-
-function pageUrl(page) {
-    return base + "forum.php?showmobile=no&mod=viewthread&tid=" + tid + "&authorid=" + authorId + "&page=" + page;
-}
-function getMaxPage(doc) {
-    var max = 1;
-    var links = doc.select(".pg a[href], .pg strong");
-    for (var i = 0; i < links.size(); i++) {
-        var href = String(links.get(i).attr("href") || "");
-        var m = href.match(/[?&]page=(\d+)/i) || href.match(/thread-\d+-(\d+)-\d+\.html/i);
-        if (m) max = Math.max(max, Number(m[1]));
-        var text = String(links.get(i).text() || "").trim();
-        if (/^\d+$/.test(text)) max = Math.max(max, Number(text));
-    }
-    return max;
-}
-function chapterTitle(message, index) {
-    var preferred = message.select("h1,h2,h3,h4,strong,b");
-    var title = "";
-    for (var i = 0; i < preferred.size(); i++) {
-        var candidate = String(preferred.get(i).text() || "").replace(/\s+/g, " ").trim();
-        if (candidate && candidate.length <= 48 && candidate.indexOf("本帖最后由") < 0) { title = candidate; break; }
-    }
-    var text = String(message.text() || "").replace(/\s+/g, " ").trim().replace(/^本帖最后由.+?编辑\s*/, "");
-    if (!title && text) title = text.substring(0, Math.min(32, text.length)) + (text.length > 32 ? "…" : "");
-    var holder = message.closest("table[id^=pid],div[id^=post_]");
-    var floor = holder == null ? null : holder.select("a[id^=postnum]").first();
-    return (floor == null ? "章节" : String(floor.text()).trim()) + (title ? " · " + title : "");
-}
-function readPage(page, knownIndex) {
-    var url = pageUrl(page);
-    var html = String(java.ajax(url) || "");
-    var doc = org.jsoup.Jsoup.parse(html, url);
-    var messages = doc.select("#postlist [id^=postmessage_]");
-    var entries = [];
-    for (var i = 0; i < messages.size(); i++) {
-        var message = messages.get(i);
-        var id = String(message.id() || "");
-        if (!id) continue;
-        entries.push({ id: id, title: chapterTitle(message, knownIndex + i + 1), url: url + "#" + id });
-    }
-    return { doc: doc, entries: entries };
-}
-function esc(value) {
-    return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
-}
-
-var first = readPage(1, 0);
-var maxPage = getMaxPage(first.doc);
-var now = new Date().getTime();
-var mustFullSync = !cache.maxPage || !cache.fullSyncAt || now - Number(cache.fullSyncAt) > 7 * 24 * 60 * 60 * 1000 || maxPage < Number(cache.maxPage);
-var startPage = mustFullSync ? 1 : Math.max(1, Number(cache.maxPage) - 1);
-if (mustFullSync) cache.pages = {};
-for (var page = startPage; page <= maxPage; page++) {
-    var pageData = page == 1 ? first : readPage(page, 0);
-    cache.pages[String(page)] = pageData.entries;
-}
-for (var key in cache.pages) {
-    if (Number(key) > maxPage) delete cache.pages[key];
-}
-cache.maxPage = maxPage;
-if (mustFullSync) cache.fullSyncAt = now;
-
-var all = [];
-var seen = {};
-for (var p = 1; p <= maxPage; p++) {
-    var entries = cache.pages[String(p)] || [];
-    for (var j = 0; j < entries.length; j++) {
-        if (!entries[j].id || seen[entries[j].id]) continue;
-        seen[entries[j].id] = true;
-        all.push(entries[j]);
-    }
-}
-java.put(cacheKey, JSON.stringify(cache));
-var htmlOut = "<html><body>";
-for (var c = 0; c < all.length; c++) htmlOut += '<a class="yamibo-chapter-cache" href="' + esc(all[c].url) + '">' + esc(all[c].title) + "</a>\n";
-htmlOut += "</body></html>";
-book.tocUrl = book.bookUrl;
-book.tocHtml = htmlOut;
-'@
-
 $contentJs = @'
 @js:
 var url = String(chapter.url || baseUrl || "");
@@ -285,7 +155,7 @@ $source = [ordered]@{
     enabled = $true
     enabledExplore = $true
     enabledCookieJar = $true
-    # 目录首建按单请求节流，避免长帖在短时间内造成高并发访问。
+    # 目录分页由 Legado 顺序读取；限速避免长帖在短时间内造成高并发访问。
     concurrentRate = '1/800'
     header = '{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36","Referer":"https://bbs.yamibo.com/"}'
     loginUrl = 'https://bbs.yamibo.com/member.php?mod=logging&action=login'
@@ -332,16 +202,16 @@ $source = [ordered]@{
         wordCount = ''
     }
     ruleToc = [ordered]@{
-        preUpdateJs = $tocPreUpdateJs.Trim()
-        chapterList = 'a.yamibo-chapter-cache'
-        chapterName = $cachedChapterNameJs.Trim()
-        chapterUrl = $cachedChapterUrlJs.Trim()
+        preUpdateJs = ''
+        chapterList = '#postlist table[id^=pid]'
+        chapterName = $chapterNameJs.Trim()
+        chapterUrl = $chapterUrlJs.Trim()
         formatJs = ''
         isVolume = ''
         isVip = ''
         isPay = ''
         updateTime = ''
-        nextTocUrl = ''
+        nextTocUrl = '.pg a.nxt@href'
     }
     ruleContent = [ordered]@{
         content = $contentJs.Trim()
@@ -350,7 +220,7 @@ $source = [ordered]@{
         imageStyle = 'FULL'
         callBackJs = (Get-Content -Raw -Encoding UTF8 $callbackPath)
     }
-    bookSourceComment = '传统规则兼容版。仅抓取文学区（fid=49）和轻小说/译文区（fid=55），并支持当前账号的帖子收藏。目录首次建立会顺序读取楼主分页；之后只校验尾页增量，每 7 天自动全量校准一次。阅读页的书源功能按钮：登录后点击收藏；未登录点击会直接打开登录页；长按打开原帖。'
+    bookSourceComment = '传统规则兼容版。仅抓取文学区（fid=49）和轻小说/译文区（fid=55），并支持当前账号的帖子收藏。目录通过论坛“只看该作者”分页顺序生成；长帖建议读完后再手动刷新目录。阅读页的书源功能按钮：登录后点击收藏；未登录点击会直接打开登录页；长按打开原帖。'
     lastUpdateTime = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     respondTime = 180000
     weight = 0
