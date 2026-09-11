@@ -171,6 +171,10 @@ function getBookInfo(book) {
     var post = message.closest("div[id^=post_]");
     var authorLink = post == null ? null : post.select(".authi a.xw1, .authi a").first();
     var authorOnly = post == null ? null : post.select("a[href*=authorid]").first();
+    var authorFromLine = "";
+    var messageHtml = String(message.html() || "").replace(/<br\s*\/?\s*>/gi, "\n").replace(/<\/(?:p|div|li|tr|h[1-6])>/gi, "\n");
+    var authorMatch = messageHtml.match(/(?:^|\n)\s*作者\s*[:：]\s*([^\r\n<]+)/i);
+    if (authorMatch) authorFromLine = String(authorMatch[1]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     var intro = textOf(message);
     if (intro.length > 800) intro = intro.substring(0, 800) + "……";
     var cover = "";
@@ -184,7 +188,7 @@ function getBookInfo(book) {
     }
     return {
         name: title,
-        author: textOf(authorLink) || String(book.author || "百合会用户"),
+        author: authorFromLine || textOf(authorLink) || String(book.author || "百合会用户"),
         intro: intro,
         coverUrl: cover,
         tocUrl: authorOnly == null ? url : absoluteUrl(authorOnly, "href", url),
