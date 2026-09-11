@@ -1,2 +1,3 @@
 .gh-config/
+.gitconfig-gh
 *.log
