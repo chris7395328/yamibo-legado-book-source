@@ -112,6 +112,30 @@ var message = node.select("[id^=postmessage_]").first();
 message == null ? "" : String(baseUrl).replace(/#.*$/, "") + "#" + String(message.id());
 '@
 
+$cachedChapterNameJs = @'
+@js:
+var urlForKey = String(book.bookUrl || "");
+var tidForKey = (urlForKey.match(/thread-(\d+)/i) || urlForKey.match(/[?&]tid=(\d+)/i) || [])[1];
+if (tidForKey) {
+    // preUpdateJs 临时把 tocUrl 指到 tocHtml；在解析首章时立即还原真实楼主目录 URL，
+    // 防止这个临时地址被写进书架，影响之后的自动检查。
+    var savedTocUrl = String(java.get("yamibo_toc_original_" + tidForKey) || "");
+    if (savedTocUrl) book.tocUrl = savedTocUrl;
+}
+String(result.text() || "").trim();
+'@
+
+$cachedChapterUrlJs = @'
+@js:
+var urlForKey = String(book.bookUrl || "");
+var tidForKey = (urlForKey.match(/thread-(\d+)/i) || urlForKey.match(/[?&]tid=(\d+)/i) || [])[1];
+if (tidForKey) {
+    var savedTocUrl = String(java.get("yamibo_toc_original_" + tidForKey) || "");
+    if (savedTocUrl) book.tocUrl = savedTocUrl;
+}
+String(result.absUrl("href") || result.attr("href") || "");
+'@
+
 # 目录更新不能每次都并发/快速扫完一个数十页的“只看楼主”主题。
 # 首次建立完整快照；其后只校验第 1 页及末两页，缓存的旧页直接复用。
 # 每 7 天全量校准一次，处理删帖、编辑或中段调整带来的罕见错位。
@@ -133,6 +157,7 @@ if (!authorMatch) {
 if (!authorMatch) throw "无法确定帖子楼主，不能建立阅读目录。";
 var authorId = authorMatch[1];
 var cacheKey = "yamibo_toc_v3_" + tid + "_" + authorId;
+java.put("yamibo_toc_original_" + tid, originalTocUrl);
 var cache = null;
 try { cache = JSON.parse(String(java.get(cacheKey) || "")); } catch (e) { cache = null; }
 if (cache == null || cache.pages == null) cache = { pages: {}, maxPage: 0, fullSyncAt: 0 };
@@ -309,8 +334,8 @@ $source = [ordered]@{
     ruleToc = [ordered]@{
         preUpdateJs = $tocPreUpdateJs.Trim()
         chapterList = 'a.yamibo-chapter-cache'
-        chapterName = '@text'
-        chapterUrl = '@href'
+        chapterName = $cachedChapterNameJs.Trim()
+        chapterUrl = $cachedChapterUrlJs.Trim()
         formatJs = ''
         isVolume = ''
         isVip = ''
