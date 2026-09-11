@@ -11,7 +11,15 @@
     var doc = org.jsoup.Jsoup.parse(String(html), pageUrl);
     var favorite = doc.select("#k_favorite").first();
     if (favorite == null) {
-        java.toast("未找到收藏入口：可能尚未登录，或帖子已经收藏。");
+        var pageText = String(doc.text() || "");
+        var loginLink = doc.select("a[href*=logging][href*=login],a[href*=member.php][href*=login]").first();
+        if (loginLink != null || /请先登录|您需要登录|登录后/.test(pageText)) {
+            // 阅读页的书源功能按钮兼作快捷登录入口：未登录时点击直接打开登录页。
+            java.showBrowser("https://bbs.yamibo.com/member.php?mod=logging&action=login");
+            java.toast("请在打开的页面完成百合会登录");
+        } else {
+            java.toast("未找到收藏入口：这个帖子可能已经收藏，或论坛页面结构有变化。");
+        }
         return true;
     }
     var favoriteUrl = String(favorite.absUrl("href"));
