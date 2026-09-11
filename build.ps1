@@ -83,8 +83,10 @@ if (message != null) {
     // 首帖的作者信息格式并不统一：可能是“作者：xxx”、 “原著 xxx”，
     // 也可能嵌在括号/标点之间；优先提取标记后的短文本。
     var html = String(message.html() || "").replace(/<br\s*\/?\s*>/gi, "\n").replace(/<\/(?:p|div|li|tr|h[1-6])>/gi, "\n");
-    var match = html.match(/(?:^|[\n【「『（(])\s*(?:原作者|作者|原著|著)\s*[:：、，,]?\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i)
-        || html.match(/(?:原作者|作者|原著|著)\s*[:：、，,]\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i);
+    // 论坛常把“作者”、冒号和名字分别包在 span/font 等标签中，先去除标签再匹配。
+    var searchable = html.replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ");
+    var match = searchable.match(/(?:^|[\n【「『（(])\s*(?:原作者|作者|原著|著)\s*[:：、，,]?\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i)
+        || searchable.match(/(?:原作者|作者|原著|著)\s*[:：、，,]\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i);
     if (match) author = String(match[1]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 if (!author && message != null) {
