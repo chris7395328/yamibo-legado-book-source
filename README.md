@@ -14,6 +14,12 @@
 
 请导入 `dist` 内的 JSON。当前成品使用传统书源规则格式，兼容尚未支持 `mainJs` 单文件接口的 Legado 正式版。
 
+也可以在 Legado 中使用网络导入地址：
+
+`https://raw.githubusercontent.com/chris7395328/yamibo-legado-book-source/main/dist/yamibo-legado-book-source.json`
+
+以后更新仓库后，在 Legado 的书源管理中使用该地址重新导入即可。
+
 ## 登录和阅读
 
 1. 在该书源的菜单中选择“登录”，用 Legado 内置网页完成百合会登录。
