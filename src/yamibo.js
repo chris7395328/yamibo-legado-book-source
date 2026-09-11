@@ -149,20 +149,6 @@ function uniqueBooks(books) {
     return result;
 }
 
-function search(key, page) {
-    var p = Math.max(1, Number(page || 1));
-    var urls = [
-        "https://bbs.yamibo.com/forum-49-" + p + ".html",
-        "https://bbs.yamibo.com/forum-55-" + p + ".html"
-    ];
-    var responses = java.ajaxAll(urls);
-    var books = [];
-    for (var i = 0; i < responses.length; i++) {
-        books = books.concat(booksFromForum(responses[i].body(), urls[i], key));
-    }
-    return uniqueBooks(books);
-}
-
 function explore(url, page) {
     var target = pageUrl(String(url), Math.max(1, Number(page || 1)));
     var html = java.ajax(target);
