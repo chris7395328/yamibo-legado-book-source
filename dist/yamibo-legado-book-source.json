@@ -1,0 +1,81 @@
+[
+{
+  "bookSourceUrl": "https://bbs.yamibo.com",
+  "bookSourceName": "百合会文学区（兼容版）",
+  "bookSourceGroup": "百合会,论坛小说",
+  "bookSourceType": 0,
+  "bookUrlPattern": "https://bbs\\.yamibo\\.com/(?:thread-\\d+.*\\.html|forum\\.php\\?mod=viewthread.*(?:tid=\\d+).*)",
+  "customOrder": 0,
+  "enabled": true,
+  "enabledExplore": true,
+  "enabledCookieJar": true,
+  "concurrentRate": "4/1000",
+  "header": "{\"User-Agent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36\",\"Referer\":\"https://bbs.yamibo.com/\"}",
+  "loginUrl": "https://bbs.yamibo.com/member.php?mod=logging&action=login",
+  "loginUi": null,
+  "loginCheckJs": null,
+  "exploreUrl": "[{\"title\":\"文学区\",\"url\":\"https://bbs.yamibo.com/forum.php?showmobile=no&mod=forumdisplay&fid=49&mobile=no&page={{page}}\"},{\"title\":\"轻小说/译文区\",\"url\":\"https://bbs.yamibo.com/forum.php?showmobile=no&mod=forumdisplay&fid=55&mobile=no&page={{page}}\"},{\"title\":\"我的帖子收藏\",\"url\":\"https://bbs.yamibo.com/home.php?mod=space&do=favorite&type=thread&showmobile=no&mobile=no&page={{page}}\"}]",
+  "searchUrl": null,
+  "ruleExplore": {
+    "bookList": "#threadlisttableid tbody[id*=thread_],#favorite_ul li:has(a[href*=thread-]),#favorite_ul li:has(a[href*=viewthread]),.threadlist li:has(a[href*=thread-]),.threadlist li:has(a[href*=viewthread]),#threadlist li:has(a[href*=thread-]),#threadlist li:has(a[href*=viewthread])",
+    "name": "@js:\nvar node = result;\nvar links = node.select(\"a.s.xst,a[href*=thread-],a[href*=viewthread]\");\nvar title = \"\";\nfor (var i = 0; i < links.size(); i++) {\n    var text = String(links.get(i).text()).replace(/\\s+/g, \" \").trim();\n    if (text && !/^\\d+$/.test(text) && !/^(New|下一页|返回|只看)/i.test(text)) { title = text; break; }\n}\ntitle;",
+    "author": "@js:\nvar node = result;\nvar author = node.select(\"td.by cite a,td.by a,.by a,.author a\").first();\nauthor == null ? \"百合会收藏\" : String(author.text()).trim();",
+    "intro": "@js:\nvar node = result;\nvar stat = node.select(\"td.num,.num\").first();\nstat == null ? \"\" : String(stat.text()).trim();",
+    "kind": "@js:\nvar node = result;\nvar type = node.select(\"a[href*=typeid]\").first();\ntype == null ? (String(node.id()).indexOf(\"fav_\") == 0 ? \"我的收藏\" : \"\") : String(type.text()).trim();",
+    "lastChapter": "",
+    "updateTime": "",
+    "bookUrl": "@js:\nvar node = result;\nvar finalUrl = \"\";\nvar links = node.select(\"a.s.xst,a[href*=thread-],a[href*=viewthread]\");\nfor (var i = 0; i < links.size(); i++) {\n    var link = links.get(i);\n    var text = String(link.text()).replace(/\\s+/g, \" \").trim();\n    if (!text || /^\\d+$/.test(text) || /^(New|下一页|返回|只看)/i.test(text)) continue;\n    var href = String(link.absUrl(\"href\") || link.attr(\"href\") || \"\");\n    var match = href.match(/thread-(\\d+)/i) || href.match(/[?&]tid=(\\d+)/i);\n    finalUrl = match ? \"https://bbs.yamibo.com/forum.php?showmobile=no&mod=viewthread&tid=\" + match[1] : href;\n    break;\n}\nfinalUrl;",
+    "coverUrl": "",
+    "wordCount": ""
+  },
+  "ruleSearch": {
+    "bookList": "",
+    "name": "",
+    "author": "",
+    "intro": "",
+    "kind": "",
+    "lastChapter": "",
+    "updateTime": "",
+    "bookUrl": "",
+    "coverUrl": "",
+    "wordCount": ""
+  },
+  "ruleBookInfo": {
+    "init": "",
+    "name": "#thread_subject@text",
+    "author": "#postlist table[id^=pid] .authi a.xw1@text",
+    "intro": "@js:\nvar doc = org.jsoup.Jsoup.parse(String(result || \"\"), String(baseUrl || \"https://bbs.yamibo.com/\"));\nvar message = doc.select(\"#postlist [id^=postmessage_]\").first();\nvar intro = \"\";\nif (message != null) {\n    var preview = message.clone();\n    preview.select(\"script,style,.pstatus,.aimg_tip\").remove();\n    var text = String(preview.text()).replace(/\\s+/g, \" \").trim().replace(/^本帖最后由.+?编辑\\s*/, \"\");\n    intro = text.length > 200 ? text.substring(0, 200) : text;\n}\nintro;",
+    "kind": "",
+    "lastChapter": "",
+    "updateTime": "",
+    "coverUrl": "@js:\nvar pageUrl = String(baseUrl || \"https://bbs.yamibo.com/\");\nvar doc = org.jsoup.Jsoup.parse(String(result || \"\"), pageUrl);\nvar message = doc.select(\"#postlist [id^=postmessage_]\").first();\nvar cover = \"\";\nif (message != null) {\n    var images = message.select(\"img\");\n    for (var i = 0; i < images.size(); i++) {\n        var image = images.get(i);\n        var src = String(image.attr(\"file\") || image.attr(\"zoomfile\") || image.attr(\"data-original\") || image.attr(\"src\") || \"\");\n        if (!src || /smiley|static\\/image\\/common|avatar|loading/i.test(src)) continue;\n        try { src = String(new Packages.java.net.URL(new Packages.java.net.URL(pageUrl), src).toString()); } catch (e) {}\n        if (/^https?:\\/\\//i.test(src)) { cover = src; break; }\n    }\n}\ncover;",
+    "tocUrl": "#postlist table[id^=pid] a[href*=authorid]@href",
+    "wordCount": ""
+  },
+  "ruleToc": {
+    "preUpdateJs": "",
+    "chapterList": "#postlist table[id^=pid]",
+    "chapterName": "@js:\nvar node = result;\nvar floor = node.select(\"a[id^=postnum]\").first();\nvar message = node.select(\"[id^=postmessage_]\").first();\nvar text = message == null ? \"\" : String(message.text()).replace(/^本帖最后由.+?编辑\\s*/, \"\").trim();\nvar heading = message == null ? null : message.select(\"h1,h2,h3,h4,strong,b\").first();\nvar title = heading == null ? \"\" : String(heading.text()).trim();\nif (!title || title.length > 48 || title.indexOf(\"本帖最后由\") >= 0) title = text.substring(0, Math.min(36, text.length));\n(floor == null ? \"章节\" : String(floor.text()).trim()) + (title ? \" · \" + title : \"\");",
+    "chapterUrl": "@js:\nvar node = result;\nvar message = node.select(\"[id^=postmessage_]\").first();\nmessage == null ? \"\" : String(baseUrl).replace(/#.*$/, \"\") + \"#\" + String(message.id());",
+    "formatJs": "",
+    "isVolume": "",
+    "isVip": "",
+    "isPay": "",
+    "updateTime": "",
+    "nextTocUrl": ".pg a.nxt@href"
+  },
+  "ruleContent": {
+    "content": "@js:\nvar url = String(chapter.url || baseUrl || \"\");\nvar match = url.match(/#(postmessage_\\d+)/);\nvar doc = org.jsoup.Jsoup.parse(String(result || \"\"), url);\nvar message = match ? doc.getElementById(match[1]) : doc.select(\"[id^=postmessage_]\").first();\nif (message == null) throw \"没有找到这一节的正文，请确认登录状态和帖子阅读权限。\";\nvar content = message.clone();\ncontent.select(\"script,style,.pstatus,.jammer\").remove();\n// Legado 的网页正文净化流程不会保留 ruby/rt 排版。转换为带界定符的文本，\n// 避免注音或备注与正文机械粘连，例如「漢かん」改为「漢〔かん〕」。\nvar rubies = content.select(\"ruby\");\nfor (var r = 0; r < rubies.size(); r++) {\n    var ruby = rubies.get(r);\n    var annotation = String(ruby.select(\"rt\").text()).trim();\n    var baseNode = ruby.clone();\n    baseNode.select(\"rt,rp\").remove();\n    var baseText = String(baseNode.text()).trim();\n    ruby.text(baseText + (annotation ? \"〔\" + annotation + \"〕\" : \"\"));\n}\nvar images = content.select(\"img\");\nfor (var i = 0; i < images.size(); i++) {\n    var image = images.get(i);\n    var src = String(image.attr(\"file\") || image.attr(\"zoomfile\") || image.attr(\"data-original\") || image.attr(\"src\") || \"\");\n    if (src) {\n        try { src = String(new Packages.java.net.URL(new Packages.java.net.URL(url), src).toString()); } catch (e) {}\n        image.attr(\"src\", src);\n    }\n    image.removeAttr(\"file\").removeAttr(\"zoomfile\").removeAttr(\"data-original\").removeAttr(\"onclick\");\n}\nString(content.html()).trim();",
+    "nextContentUrl": "",
+    "replaceRegex": "",
+    "imageStyle": "FULL",
+    "callBackJs": "(function () {\n    var eventName = String(event || \"\");\n    if (eventName === \"longClickCustomButton\") {\n        java.showBrowser(String(book.bookUrl));\n        return true;\n    }\n    if (eventName !== \"clickCustomButton\") return false;\n\n    var pageUrl = String(book.bookUrl);\n    var html = java.ajax(pageUrl);\n    var doc = org.jsoup.Jsoup.parse(String(html), pageUrl);\n    var favorite = doc.select(\"#k_favorite\").first();\n    if (favorite == null) {\n        java.toast(\"未找到收藏入口：可能尚未登录，或帖子已经收藏。\");\n        return true;\n    }\n    var favoriteUrl = String(favorite.absUrl(\"href\"));\n    if (!favoriteUrl) {\n        java.toast(\"无法取得收藏地址，请重新登录后再试。\");\n        return true;\n    }\n    var response = java.ajax(favoriteUrl);\n    var message = String(org.jsoup.Jsoup.parse(String(response)).text());\n    if (message.indexOf(\"收藏成功\") >= 0 || message.indexOf(\"信息收藏成功\") >= 0) {\n        java.toast(\"已收藏到百合会\");\n    } else if (message.indexOf(\"已经收藏\") >= 0) {\n        java.toast(\"这个帖子已经收藏过了\");\n    } else if (message.indexOf(\"登录\") >= 0) {\n        java.toast(\"收藏失败：请先登录百合会\");\n    } else {\n        java.longToast(\"百合会返回：\" + message.substring(0, Math.min(80, message.length)));\n    }\n    return true;\n})()\n"
+  },
+  "bookSourceComment": "传统规则兼容版。仅抓取文学区（fid=49）和轻小说/译文区（fid=55），并支持当前账号的帖子收藏。登录后帖子按“只看楼主”分页整理为阅读章节。",
+  "lastUpdateTime": 1789123727853,
+  "respondTime": 180000,
+  "weight": 0,
+  "eventListener": true,
+  "customButton": true
+}
+]
