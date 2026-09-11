@@ -173,8 +173,9 @@ function getBookInfo(book) {
     var authorOnly = post == null ? null : post.select("a[href*=authorid]").first();
     var authorFromLine = "";
     var messageHtml = String(message.html() || "").replace(/<br\s*\/?\s*>/gi, "\n").replace(/<\/(?:p|div|li|tr|h[1-6])>/gi, "\n");
-    var authorMatch = messageHtml.match(/(?:^|[\n【「『（(])\s*(?:原作者|作者|原著|著)\s*[:：、，,]?\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i)
-        || messageHtml.match(/(?:原作者|作者|原著|著)\s*[:：、，,]\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i);
+    var searchableMessage = messageHtml.replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ");
+    var authorMatch = searchableMessage.match(/(?:^|[\n【「『（(])\s*(?:原作者|作者|原著|著)\s*[:：、，,]?\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i)
+        || searchableMessage.match(/(?:原作者|作者|原著|著)\s*[:：、，,]\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i);
     if (authorMatch) authorFromLine = String(authorMatch[1]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     var intro = textOf(message);
     if (intro.length > 800) intro = intro.substring(0, 800) + "……";
