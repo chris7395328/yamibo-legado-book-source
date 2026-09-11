@@ -171,14 +171,8 @@ function getBookInfo(book) {
     var post = message.closest("div[id^=post_]");
     var authorLink = post == null ? null : post.select(".authi a.xw1, .authi a").first();
     var authorOnly = post == null ? null : post.select("a[href*=authorid]").first();
-    var authorFromLine = "";
-    var messageHtml = String(message.html() || "").replace(/<br\s*\/?\s*>/gi, "\n").replace(/<\/(?:p|div|li|tr|h[1-6])>/gi, "\n");
-    var searchableMessage = messageHtml.replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ");
-    var authorMatch = searchableMessage.match(/(?:^|[\n【「『（(])\s*(?:原作者|作者|原著|著)\s*[:：、，,]?\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i)
-        || searchableMessage.match(/(?:原作者|作者|原著|著)\s*[:：、，,]\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i);
-    if (authorMatch) authorFromLine = String(authorMatch[1]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     var intro = textOf(message);
-    if (intro.length > 800) intro = intro.substring(0, 800) + "……";
+    if (intro.length > 200) intro = intro.substring(0, 200) + "…";
     var cover = "";
     var images = message.select("img");
     for (var i = 0; i < images.size(); i++) {
@@ -190,7 +184,7 @@ function getBookInfo(book) {
     }
     return {
         name: title,
-        author: authorFromLine || textOf(authorLink) || String(book.author || "百合会用户"),
+        author: textOf(authorLink) || String(book.author || "百合会用户"),
         intro: intro,
         coverUrl: cover,
         tocUrl: authorOnly == null ? url : absoluteUrl(authorOnly, "href", url),
