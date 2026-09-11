@@ -80,9 +80,11 @@ var doc = org.jsoup.Jsoup.parse(String(result || ""), String(baseUrl || "https:/
 var message = doc.select("#postlist [id^=postmessage_]").first();
 var author = "";
 if (message != null) {
-    // 首帖常在正文第一行写“作者：xxx”；保留换行后只匹配这一行，避免把正文内容误当作者。
+    // 首帖的作者信息格式并不统一：可能是“作者：xxx”、 “原著 xxx”，
+    // 也可能嵌在括号/标点之间；优先提取标记后的短文本。
     var html = String(message.html() || "").replace(/<br\s*\/?\s*>/gi, "\n").replace(/<\/(?:p|div|li|tr|h[1-6])>/gi, "\n");
-    var match = html.match(/(?:^|\n)\s*作者\s*[:：]\s*([^\r\n<]+)/i);
+    var match = html.match(/(?:^|[\n【「『（(])\s*(?:原作者|作者|原著|著)\s*[:：、，,]?\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i)
+        || html.match(/(?:原作者|作者|原著|著)\s*[:：、，,]\s*([^。！？；;，,：:【】「」『』（）()<>]{1,40})/i);
     if (match) author = String(match[1]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 if (!author && message != null) {
